@@ -22,9 +22,9 @@
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// (INCLUDING NEGLIGENCE OR OTHERWISECATKIN_DEPENDS) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//=================================================================================================
+//====================================CATKIN_DEPENDS=============================================================
 
 // Based on interactive_maker_tutorials basic_controls tutorial:
 /*
@@ -33,7 +33,8 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *
+ *CATKIN_DEPENDS
+
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -45,7 +46,8 @@
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * IMPLIED WARRANTIES OF MERCHANTABILITCATKIN_DEPENDS
+Y AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
  * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
  * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -76,12 +78,9 @@
 
 using namespace visualization_msgs;
 
-
-// %Tag(vars)%
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
-float marker_pos = 0;
 interactive_markers::MenuHandler menu_handler;
-// %EndTag(vars)%
+
 
 ros::Publisher posePublisher_;
 geometry_msgs::PoseStamped out_pose_;
@@ -89,23 +88,8 @@ std::string p_frame_id_;
 std::string p_marker_name_;
 std::vector<double> p_init_pose;
 
-
-// %Tag(processFeedback)%
 void processFeedback( const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback )
 {
-  std::ostringstream s;
-  s << "Feedback from marker '" << feedback->marker_name << "' "
-      << " / control '" << feedback->control_name << "'";
-
-  std::ostringstream mouse_point_ss;
-  if( feedback->mouse_point_valid )
-  {
-    mouse_point_ss << " at " << feedback->mouse_point.x
-                   << ", " << feedback->mouse_point.y
-                   << ", " << feedback->mouse_point.z
-                   << " in frame " << feedback->header.frame_id;
-  }
-
   switch ( feedback->event_type )
   {
     case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
@@ -118,9 +102,7 @@ void processFeedback( const visualization_msgs::InteractiveMarkerFeedbackConstPt
 
   server->applyChanges();
 }
-// %EndTag(processFeedback)%
 
-// %Tag(alignMarker)%
 void alignMarker( const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback )
 {
   geometry_msgs::Pose pose = feedback->pose;
@@ -141,9 +123,7 @@ void alignMarker( const visualization_msgs::InteractiveMarkerFeedbackConstPtr &f
   server->setPose( feedback->marker_name, pose );
   server->applyChanges();
 }
-// %EndTag(alignMarker)%
 
-// %Tag(Box)%
 Marker makeBox( InteractiveMarker &msg )
 {
   Marker marker;
@@ -169,7 +149,6 @@ InteractiveMarkerControl& makeBoxControl( InteractiveMarker &msg )
 
   return msg.controls.back();
 }
-// %EndTag(Box)%
 
 void saveMarker( InteractiveMarker int_marker )
 {
@@ -179,7 +158,6 @@ void saveMarker( InteractiveMarker int_marker )
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-// %Tag(6DOF)%
 void make6DofMarker( bool fixed )
 {
   InteractiveMarker int_marker;
@@ -244,10 +222,7 @@ void make6DofMarker( bool fixed )
   server->insert(int_marker);
   server->setCallback(int_marker.name, &processFeedback);
 }
-// %EndTag(6DOF)%
 
-
-// %Tag(main)%
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "interactive_marker_pose_control");
@@ -296,4 +271,3 @@ int main(int argc, char** argv)
 
   server.reset();
 }
-// %EndTag(main)%

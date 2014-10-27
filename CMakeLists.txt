@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES vigir_interactive_marker_pose_server
-#  CATKIN_DEPENDS geometry_msgs interactive_markers roscpp visualization_msgs
+  CATKIN_DEPENDS geometry_msgs interactive_markers roscpp visualization_msgs
 #  DEPENDS system_lib
 )
 
@@ -19,7 +19,11 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+find_package(Boost REQUIRED COMPONENTS system)
+
 add_executable(interactive_marker_pose_server src/interactive_marker_pose_server.cpp)
+target_link_libraries(interactive_marker_pose_server ${catkin_LIBRARIES})
+
 
 
 install(TARGETS interactive_marker_pose_server
