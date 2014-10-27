@@ -20,6 +20,7 @@ include_directories(
 )
 
 add_executable(interactive_marker_pose_server src/interactive_marker_pose_server.cpp)
+target_link_libraries(interactive_marker_pose_server ${catkin_LIBRARIES})
 
 
 install(TARGETS interactive_marker_pose_server
