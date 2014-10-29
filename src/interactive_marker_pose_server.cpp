@@ -243,7 +243,7 @@ void resetMarker() {
 void initPoseCB(const geometry_msgs::PoseStampedConstPtr& pose) {
     tf::StampedTransform transform;
     try {
-        tf_listener->waitForTransform(p_frame_id_, pose->header.frame_id , pose->header.stamp, ros::Duration(5.0));
+        tf_listener->waitForTransform(p_frame_id_, pose->header.frame_id , pose->header.stamp, ros::Duration(1.0));
         tf_listener->lookupTransform(p_frame_id_, pose->header.frame_id , pose->header.stamp, transform);
     } catch (tf::TransformException e) {
         ROS_ERROR_STREAM("Transformation exception: " << e.what());
