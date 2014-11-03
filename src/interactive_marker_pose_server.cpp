@@ -296,6 +296,7 @@ int main(int argc, char** argv)
       p_init_pose.resize(7,0);
       p_init_pose[6] = 0;
   } else {
+     ROS_INFO_STREAM("Setting init position to " << init_pose_str);
      for (unsigned int i = 0; i < init_pose_splitted.size(); i++) {
          try {
             p_init_pose.push_back(boost::lexical_cast<double>(init_pose_splitted[i]));
