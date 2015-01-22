@@ -279,8 +279,6 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "interactive_marker_pose_control");
   ros::NodeHandle n;
 
-  tf_listener.reset(new tf::TransformListener());
-
   posePublisher_ = n.advertise<geometry_msgs::PoseStamped>("pose", 1, false);
 
   ros::NodeHandle private_nh_("~");
@@ -312,6 +310,7 @@ int main(int argc, char** argv)
   init_pose_received = true;
   private_nh_.param("init_pose_topic", p_init_pose_topic, std::string(""));
   if (p_init_pose_topic.compare("") != 0) {
+    tf_listener.reset(new tf::TransformListener());
     init_pose_sub = n.subscribe(p_init_pose_topic,1, &initPoseCB);
     ROS_INFO_STREAM("Waiting for initial pose on topic '" << p_init_pose_topic << "'.");
     init_pose_received = false;
