@@ -74,7 +74,7 @@ Y AND FITNESS FOR A PARTICULAR PURPOSE
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
-
+#include <vigir_interactive_marker_pose_server/SetPosition.h>
 
 #include <math.h>
 
@@ -86,6 +86,7 @@ interactive_markers::MenuHandler menu_handler;
 
 ros::Publisher posePublisher_;
 geometry_msgs::PoseStamped out_pose_;
+geometry_msgs::Pose user_requested_pose_;
 std::string p_frame_id_;
 std::string p_marker_name_;
 std::vector<double> p_init_pose;
@@ -94,6 +95,7 @@ bool init_pose_received;
 ros::Subscriber init_pose_sub;
 ros::Subscriber reset_sub;
 boost::shared_ptr<tf::TransformListener> tf_listener;
+//ros::ServiceServer set_position_service;
 
 void processFeedback( const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback )
 {
@@ -135,12 +137,12 @@ Marker makeBox( InteractiveMarker &msg )
 {
   Marker marker;
 
-  marker.type = Marker::CUBE;
-  marker.scale.x = msg.scale * 0.45;
-  marker.scale.y = msg.scale * 0.45;
-  marker.scale.z = msg.scale * 0.45;
+  marker.type = Marker::ARROW;
+  marker.scale.x = 0.3;
+  marker.scale.y = 0.05;
+  marker.scale.z = 0.05;
   marker.color.r = 0.5;
-  marker.color.g = 0.5;
+  marker.color.g = 0.0;
   marker.color.b = 0.5;
   marker.color.a = 1.0;
 
@@ -151,7 +153,7 @@ InteractiveMarkerControl& makeBoxControl( InteractiveMarker &msg )
 {
   InteractiveMarkerControl control;
   control.always_visible = true;
-  //control.markers.push_back( makeBox(msg) );
+  control.markers.push_back( makeBox(msg) );
   msg.controls.push_back( control );
 
   return msg.controls.back();
@@ -165,10 +167,21 @@ void saveMarker( InteractiveMarker int_marker )
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-void make6DofMarker( bool fixed )
+void make6DofMarker( bool fixed, bool setPose=false )
 {
   InteractiveMarker int_marker;
   int_marker.header.frame_id = p_frame_id_;
+
+  if (setPose) {
+      int_marker.pose.position.x = user_requested_pose_.position.x;
+      int_marker.pose.position.y = user_requested_pose_.position.y;
+      int_marker.pose.position.z = user_requested_pose_.position.z;
+      int_marker.pose.orientation.x = user_requested_pose_.orientation.x;
+      int_marker.pose.orientation.y = user_requested_pose_.orientation.y;
+      int_marker.pose.orientation.z = user_requested_pose_.orientation.z;
+      int_marker.pose.orientation.w = user_requested_pose_.orientation.w;
+  }
+  else{
   int_marker.pose.position.x = p_init_pose[0];
   int_marker.pose.position.y = p_init_pose[1];
   int_marker.pose.position.z = p_init_pose[2];
@@ -176,6 +189,7 @@ void make6DofMarker( bool fixed )
   int_marker.pose.orientation.y = p_init_pose[4];
   int_marker.pose.orientation.z = p_init_pose[5];
   int_marker.pose.orientation.w = p_init_pose[6];
+  }
   int_marker.scale = 0.2;
 
   int_marker.name = p_marker_name_;
@@ -230,12 +244,12 @@ void make6DofMarker( bool fixed )
   server->setCallback(int_marker.name, &processFeedback);
 }
 
-void resetMarker() {
+void resetMarker(bool set_Pose = false) {
     server.reset( new interactive_markers::InteractiveMarkerServer(p_marker_name_,"",false) );
 
     ros::Duration(0.1).sleep();
 
-    make6DofMarker( false );
+    make6DofMarker( false , set_Pose);
 
     server->applyChanges();
 }
@@ -272,6 +286,11 @@ void initPoseCB(const geometry_msgs::PoseStampedConstPtr& pose) {
 
 void resetMarkerCB(const std_msgs::EmptyConstPtr&) {
     resetMarker();
+}
+
+bool setMarkerPositionCB( vigir_interactive_marker_pose_server::SetPosition::Request &req, vigir_interactive_marker_pose_server::SetPosition::Response &res) {
+    user_requested_pose_ = req.pointIn;
+    resetMarker(true);
 }
 
 int main(int argc, char** argv)
@@ -321,6 +340,8 @@ int main(int argc, char** argv)
   std::string reset_topic;
   private_nh_.param("reset_topic", reset_topic, std::string("reset_marker"));
   reset_sub = n.subscribe(reset_topic, 1, &resetMarkerCB);
+
+ ros::ServiceServer set_position_service = private_nh_.advertiseService("set_marker_position", setMarkerPositionCB);
 
   ros::spin();
 

@@ -6,12 +6,29 @@ find_package(catkin REQUIRED COMPONENTS
   interactive_markers
   roscpp
   visualization_msgs
+  message_generation
 )
 
+
+set(MSG_DEPS
+  std_msgs
+  geometry_msgs
+)
+
+#set(MSG_FILES
+#)
+
+set(SRV_FILES
+  SetPosition.srv
+)
+
+
+ add_service_files(DIRECTORY srv FILES ${SRV_FILES})
+generate_messages(DEPENDENCIES ${MSG_DEPS})
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES vigir_interactive_marker_pose_server
-  CATKIN_DEPENDS geometry_msgs interactive_markers roscpp visualization_msgs
+  CATKIN_DEPENDS geometry_msgs interactive_markers roscpp visualization_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -29,5 +46,7 @@ install(TARGETS interactive_marker_pose_server
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
+
+
 
 

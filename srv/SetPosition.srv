@@ -1,0 +1,7 @@
+# Set position of the interactive marker to PoseIn
+
+geometry_msgs/Pose pointIn
+
+---
+# point to look at
+bool suceed
