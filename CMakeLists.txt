@@ -40,6 +40,9 @@ find_package(Boost REQUIRED COMPONENTS system)
 
 add_executable(interactive_marker_pose_server src/interactive_marker_pose_server.cpp)
 target_link_libraries(interactive_marker_pose_server ${catkin_LIBRARIES})
+add_dependencies(interactive_marker_pose_server ${catkin_EXPORTED_TARGETS})
+add_dependencies(interactive_marker_pose_server ${PROJECT_NAME}_gencpp)
+
 
 install(TARGETS interactive_marker_pose_server
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
