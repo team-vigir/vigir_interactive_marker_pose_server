@@ -1,17 +1,21 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(vigir_interactive_marker_pose_server)
 
+add_compile_options(-std=c++11)
+
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   interactive_markers
   roscpp
   visualization_msgs
+  eigen_conversions
+  tf_conversions
 )
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES vigir_interactive_marker_pose_server
-  CATKIN_DEPENDS geometry_msgs interactive_markers roscpp visualization_msgs
+  CATKIN_DEPENDS geometry_msgs interactive_markers roscpp visualization_msgs eigen_conversions tf_conversions
 #  DEPENDS system_lib
 )
 

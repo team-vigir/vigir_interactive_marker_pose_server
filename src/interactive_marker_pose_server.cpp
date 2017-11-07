@@ -67,6 +67,9 @@ Y AND FITNESS FOR A PARTICULAR PURPOSE
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 #include <tf/tf.h>
+#include <tf_conversions/tf_eigen.h>
+
+#include <eigen_conversions/eigen_msg.h>
 
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Empty.h>
@@ -84,16 +87,15 @@ boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 interactive_markers::MenuHandler menu_handler;
 
 
-ros::Publisher posePublisher_;
+ros::Publisher pose_publisher_;
 geometry_msgs::PoseStamped out_pose_;
-std::string p_frame_id_;
-std::string p_marker_name_;
-std::vector<double> p_init_pose;
-std::string p_init_pose_topic;
-bool init_pose_received;
-ros::Subscriber init_pose_sub;
-ros::Subscriber reset_sub;
-boost::shared_ptr<tf::TransformListener> tf_listener;
+std::string frame_id_;
+std::string marker_name_;
+Eigen::Affine3d init_pose_;
+bool init_pose_received_;
+ros::Subscriber init_pose_sub_;
+ros::Subscriber reset_sub_;
+boost::shared_ptr<tf::TransformListener> tf_listener_;
 
 void processFeedback( const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback )
 {
@@ -103,7 +105,7 @@ void processFeedback( const visualization_msgs::InteractiveMarkerFeedbackConstPt
 
         out_pose_.pose = feedback->pose;
         out_pose_.header = feedback->header;
-        posePublisher_.publish(out_pose_);
+        pose_publisher_.publish(out_pose_);
       break;
   }
 
@@ -168,18 +170,12 @@ void saveMarker( InteractiveMarker int_marker )
 void make6DofMarker( bool fixed )
 {
   InteractiveMarker int_marker;
-  int_marker.header.frame_id = p_frame_id_;
-  int_marker.pose.position.x = p_init_pose[0];
-  int_marker.pose.position.y = p_init_pose[1];
-  int_marker.pose.position.z = p_init_pose[2];
-  int_marker.pose.orientation.x = p_init_pose[3];
-  int_marker.pose.orientation.y = p_init_pose[4];
-  int_marker.pose.orientation.z = p_init_pose[5];
-  int_marker.pose.orientation.w = p_init_pose[6];
+  int_marker.header.frame_id = frame_id_;
+  tf::poseEigenToMsg(init_pose_, int_marker.pose);
   int_marker.scale = 0.2;
 
-  int_marker.name = p_marker_name_;
-  int_marker.description = p_marker_name_;
+  int_marker.name = marker_name_;
+  int_marker.description = marker_name_;
 
   // insert a box
   makeBoxControl(int_marker);
@@ -231,7 +227,7 @@ void make6DofMarker( bool fixed )
 }
 
 void resetMarker() {
-    server.reset( new interactive_markers::InteractiveMarkerServer(p_marker_name_,"",false) );
+    server.reset( new interactive_markers::InteractiveMarkerServer(marker_name_,"",false) );
 
     ros::Duration(0.1).sleep();
 
@@ -243,8 +239,8 @@ void resetMarker() {
 void initPoseCB(const geometry_msgs::PoseStampedConstPtr& pose) {
     tf::StampedTransform transform;
     try {
-        tf_listener->waitForTransform(p_frame_id_, pose->header.frame_id , pose->header.stamp, ros::Duration(1.0));
-        tf_listener->lookupTransform(p_frame_id_, pose->header.frame_id , pose->header.stamp, transform);
+        tf_listener_->waitForTransform(frame_id_, pose->header.frame_id , pose->header.stamp, ros::Duration(1.0));
+        tf_listener_->lookupTransform(frame_id_, pose->header.frame_id , pose->header.stamp, transform);
     } catch (tf::TransformException e) {
         ROS_ERROR_STREAM("Transformation exception: " << e.what());
         return ;
@@ -256,16 +252,10 @@ void initPoseCB(const geometry_msgs::PoseStampedConstPtr& pose) {
 
 
     ROS_INFO_ONCE("Received initial position");
-    p_init_pose[0] = hand.getOrigin().x();
-    p_init_pose[1] = hand.getOrigin().y();
-    p_init_pose[2] = hand.getOrigin().z();
-    p_init_pose[3] = hand.getRotation().x();
-    p_init_pose[4] = hand.getRotation().y();
-    p_init_pose[5] = hand.getRotation().z();
-    p_init_pose[6] = hand.getRotation().w();
+    tf::poseTFToEigen(hand, init_pose_);
 
-    if (!init_pose_received) {
-        init_pose_received = true;
+    if (!init_pose_received_) {
+        init_pose_received_ = true;
         resetMarker();
     }
 }
@@ -279,48 +269,40 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "interactive_marker_pose_control");
   ros::NodeHandle n;
 
-  posePublisher_ = n.advertise<geometry_msgs::PoseStamped>("pose", 1, false);
+  pose_publisher_ = n.advertise<geometry_msgs::PoseStamped>("pose", 1, false);
 
   ros::NodeHandle private_nh_("~");
 
-  private_nh_.param("frame_id", p_frame_id_, std::string("base"));
-  private_nh_.param("marker_name", p_marker_name_, std::string("interactive_marker_pose_control"));
+  private_nh_.param("frame_id", frame_id_, std::string("base"));
+  private_nh_.param("marker_name", marker_name_, std::string("interactive_marker_pose_control"));
 
-  std::string init_pose_str;
-  private_nh_.param("init_pose",init_pose_str, std::string(""));
-  std::vector<std::string> init_pose_splitted;
-  boost::split(init_pose_splitted, init_pose_str, boost::is_any_of(","));
-  if (init_pose_splitted.size() != 7) {
-      p_init_pose.resize(7,0);
-      p_init_pose[6] = 0;
-  } else {
-     ROS_INFO_STREAM("Setting init position to " << init_pose_str);
-     for (unsigned int i = 0; i < init_pose_splitted.size(); i++) {
-         try {
-            p_init_pose.push_back(boost::lexical_cast<double>(init_pose_splitted[i]));
-         } catch (boost::bad_lexical_cast) {
-             if (i < 6) {
-                p_init_pose[i] = 0;
-             } else {
-                 p_init_pose[i] = 1;
-             }
-         }
-     }
+  std::vector<double> init_pose_vec;
+  private_nh_.param<std::vector<double>>("init_pose", init_pose_vec, std::vector<double>(6, 0));
+  if (init_pose_vec.size() != 6) {
+    ROS_ERROR_STREAM("Init pose must have 6 elements.");
+    return 0;
   }
-  init_pose_received = true;
-  private_nh_.param("init_pose_topic", p_init_pose_topic, std::string(""));
-  if (p_init_pose_topic.compare("") != 0) {
-    tf_listener.reset(new tf::TransformListener());
-    init_pose_sub = n.subscribe(p_init_pose_topic,1, &initPoseCB);
-    ROS_INFO_STREAM("Waiting for initial pose on topic '" << p_init_pose_topic << "'.");
-    init_pose_received = false;
+
+  init_pose_ = Eigen::AngleAxisd(init_pose_vec[5], Eigen::Vector3d::UnitZ())
+      * Eigen::AngleAxisd(init_pose_vec[4], Eigen::Vector3d::UnitY())
+      * Eigen::AngleAxisd(init_pose_vec[3], Eigen::Vector3d::UnitX());
+  init_pose_.translation() = Eigen::Vector3d(init_pose_vec[0], init_pose_vec[1], init_pose_vec[2]);
+
+  init_pose_received_ = true;
+  std::string init_pose_topic;
+  private_nh_.param("init_pose_topic", init_pose_topic, std::string(""));
+  if (init_pose_topic != "") {
+    tf_listener_.reset(new tf::TransformListener());
+    init_pose_sub_ = n.subscribe(init_pose_topic,1 , &initPoseCB);
+    ROS_INFO_STREAM("Waiting for initial pose on topic '" << init_pose_topic << "'.");
+    init_pose_received_ = false;
   } else {
       resetMarker();
   }
 
   std::string reset_topic;
   private_nh_.param("reset_topic", reset_topic, std::string("reset_marker"));
-  reset_sub = n.subscribe(reset_topic, 1, &resetMarkerCB);
+  reset_sub_ = n.subscribe(reset_topic, 1, &resetMarkerCB);
 
   ros::spin();
 
