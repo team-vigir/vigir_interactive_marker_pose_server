@@ -189,8 +189,8 @@ void make6DofMarker( bool fixed )
     control.orientation_mode = InteractiveMarkerControl::FIXED;
   }
 
-  control.orientation.w = 1;
-  control.orientation.x = 1;
+  control.orientation.w = 0.707;
+  control.orientation.x = 0.707;
   control.orientation.y = 0;
   control.orientation.z = 0;
   control.name = "rotate_x";
@@ -200,9 +200,9 @@ void make6DofMarker( bool fixed )
   control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
   int_marker.controls.push_back(control);
 
-  control.orientation.w = 1;
+  control.orientation.w = 0.707;
   control.orientation.x = 0;
-  control.orientation.y = 1;
+  control.orientation.y = 0.707;
   control.orientation.z = 0;
   control.name = "rotate_z";
   control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
@@ -211,10 +211,10 @@ void make6DofMarker( bool fixed )
   control.interaction_mode = InteractiveMarkerControl::MOVE_AXIS;
   int_marker.controls.push_back(control);
 
-  control.orientation.w = 1;
+  control.orientation.w = 0.707;
   control.orientation.x = 0;
   control.orientation.y = 0;
-  control.orientation.z = 1;
+  control.orientation.z = 0.707;
   control.name = "rotate_y";
   control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
   int_marker.controls.push_back(control);
@@ -237,10 +237,10 @@ void resetMarker() {
 }
 
 void initPoseCB(const geometry_msgs::PoseStampedConstPtr& pose) {
-    tf::StampedTransform transform;
+    tf::StampedTransform marker_to_pose_frame;
     try {
         tf_listener_->waitForTransform(frame_id_, pose->header.frame_id , pose->header.stamp, ros::Duration(1.0));
-        tf_listener_->lookupTransform(frame_id_, pose->header.frame_id , pose->header.stamp, transform);
+        tf_listener_->lookupTransform(frame_id_, pose->header.frame_id , pose->header.stamp, marker_to_pose_frame);
     } catch (tf::TransformException e) {
         ROS_ERROR_STREAM("Transformation exception: " << e.what());
         return ;
@@ -248,11 +248,11 @@ void initPoseCB(const geometry_msgs::PoseStampedConstPtr& pose) {
     tf::Transform pose_tf;
     pose_tf.setOrigin(tf::Vector3(pose->pose.position.x, pose->pose.position.y, pose->pose.position.z));
     pose_tf.setRotation(tf::Quaternion(pose->pose.orientation.x, pose->pose.orientation.y, pose->pose.orientation.z, pose->pose.orientation.w));
-    tf::Transform hand = transform * pose_tf;
+    tf::Transform marker_pose = marker_to_pose_frame * pose_tf;
 
 
     ROS_INFO_ONCE("Received initial position");
-    tf::poseTFToEigen(hand, init_pose_);
+    tf::poseTFToEigen(marker_pose, init_pose_);
 
     if (!init_pose_received_) {
         init_pose_received_ = true;
@@ -267,9 +267,9 @@ void resetMarkerCB(const std_msgs::EmptyConstPtr&) {
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "interactive_marker_pose_control");
-  ros::NodeHandle n;
+  ros::NodeHandle nh;
 
-  pose_publisher_ = n.advertise<geometry_msgs::PoseStamped>("pose", 1, false);
+  pose_publisher_ = nh.advertise<geometry_msgs::PoseStamped>("pose", 1, false);
 
   ros::NodeHandle private_nh_("~");
 
@@ -293,7 +293,7 @@ int main(int argc, char** argv)
   private_nh_.param("init_pose_topic", init_pose_topic, std::string(""));
   if (init_pose_topic != "") {
     tf_listener_.reset(new tf::TransformListener());
-    init_pose_sub_ = n.subscribe(init_pose_topic,1 , &initPoseCB);
+    init_pose_sub_ = nh.subscribe(init_pose_topic,1 , &initPoseCB);
     ROS_INFO_STREAM("Waiting for initial pose on topic '" << init_pose_topic << "'.");
     init_pose_received_ = false;
   } else {
@@ -302,7 +302,7 @@ int main(int argc, char** argv)
 
   std::string reset_topic;
   private_nh_.param("reset_topic", reset_topic, std::string("reset_marker"));
-  reset_sub_ = n.subscribe(reset_topic, 1, &resetMarkerCB);
+  reset_sub_ = nh.subscribe(reset_topic, 1, &resetMarkerCB);
 
   ros::spin();
 
